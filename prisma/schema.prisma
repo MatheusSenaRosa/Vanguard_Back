@@ -1,0 +1,212 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Managers {
+  id               String                @id 
+  name             String
+  email            String             @unique
+  password         String
+  refreshToken     String?            @db.Text
+  validationTokens ValidationTokens[]
+
+  gitHub   String?
+  linkedIn String?
+  biography     String?            @db.Text
+
+  roleId String
+  role   Roles @relation(fields: [roleId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  postComments PostComments[]
+  postReplies  PostReplies[]
+  postCommentsApproves  PostCommentsApprovalHistory[]
+
+  @@map("managers")
+}
+
+model Roles {
+  id               String                @id 
+  description String @unique
+
+  managers Managers[]
+
+  @@map("roles")
+}
+
+model Customers {
+  id               String                @id 
+  stripeId       String? @unique
+  statusId       String
+  occupationId   String?
+  localizationId Int?
+
+  name   String
+  gender String?
+
+  gitHub   String?
+  linkedIn String?
+
+  email    String @unique
+  password String
+
+  refreshToken String? @db.Text
+
+  validationTokens ValidationTokens[]
+  localization     Localizations?
+
+  status     CustomerStatus @relation(fields: [statusId], references: [id])
+  occupation Occupations?   @relation(fields: [occupationId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  postComments        PostComments[]
+  postReplies         PostReplies[]
+  postCommentsReports PostCommentsReports[]
+
+  @@map("customers")
+}
+
+model CustomerStatus {
+  id               String                @id 
+  description String @unique
+
+  customers Customers[]
+
+  @@map("customer_status")
+}
+
+model ValidationTokens {
+  id               String                @id 
+  token       String   @unique
+  description String
+  expiresAt   DateTime
+
+  customerId String?
+  customer   Customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  managerId String?
+  manager   Managers? @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@map("validation_tokens")
+}
+
+model Occupations {
+  id               String                @id 
+  description String @unique
+
+  customers Customers[]
+
+  @@map("occupations")
+}
+
+model Localizations {
+  id               String                @id 
+
+  countryId Int
+  country   String
+
+  stateId Int?
+  state   String?
+
+  cityId Int?
+  city   String?
+
+  customerId String?       @unique
+  customer   Customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("localizations")
+}
+
+model Posts {
+  id               String                @id 
+
+  comments PostComments[]
+
+  @@map("posts")
+}
+
+model PostCommentsReports {
+  id Int @id @default(autoincrement())
+
+  customerId String
+  customer   Customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  commentId String?
+  comment   PostComments? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  replyId String?
+  reply   PostReplies? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@map("post_comments_reports")
+}
+
+model PostCommentsApprovalHistory {
+  id               String                @id 
+
+  comment   PostComments?
+  reply   PostReplies?
+
+  approverId String
+  approver   Managers @relation(fields: [approverId], references: [id], onDelete: Cascade)
+}
+
+model PostComments {
+  id               String                @id 
+  description String
+
+  isBanned Boolean
+
+  customerId String?
+  customer   Customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  managerId String?
+  manager   Managers? @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  postId String
+  post   Posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  approvalId String? @unique
+  approval   PostCommentsApprovalHistory? @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+
+  reports PostCommentsReports[]
+  replies PostReplies[]
+
+  createdAt DateTime @default(now())
+
+  @@map("post_comments")
+}
+
+model PostReplies {
+  id               String                @id 
+  description String
+
+  isBanned Boolean
+
+  customerId String?
+  customer   Customers? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  managerId String?
+  manager   Managers? @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  commentId String?
+  comment   PostComments? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  approvalId String? @unique
+  approval   PostCommentsApprovalHistory? @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+
+  reports PostCommentsReports[]
+
+  createdAt DateTime @default(now())
+
+  @@map("post_replies")
+}
